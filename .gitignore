@@ -1,0 +1,49 @@
+# dependencies
+node_modules/
+vendor/
+
+# logs & cache
+*.log
+storage/
+bootstrap/cache/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# uploads & temp
+public/storage/
+*.tmp
+
+# composer
+composer.phar
+composer.lock
+
+# npm
+package-lock.json
+yarn.lock
+
+# Laravel specific
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
