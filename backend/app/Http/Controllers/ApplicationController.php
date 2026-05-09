@@ -4,9 +4,20 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Application;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class ApplicationController extends Controller
 {
+    private const STATUSES = [
+        'pending_review' => 'Menunggu Review',
+        'interview' => 'Wawancara',
+        'psychotest' => 'Psikotes',
+        'accepted' => 'Diterima',
+        'rejected' => 'Ditolak',
+    ];
+
     // 🔹 APPLY JOB
     public function apply(Request $request)
 {
@@ -24,7 +35,7 @@ class ApplicationController extends Controller
         'user_id' => auth()->id(),
         'cv_file' => $path,
         'cover_letter' => $request->cover_letter,
-        'status' => 'applied',
+        'status' => 'pending_review',
     ]);
 
     return response()->json([
@@ -36,8 +47,9 @@ class ApplicationController extends Controller
     // 🔹 LIHAT LAMARAN USER
     public function myApplications(Request $request)
     {
-        return Application::with('jobPost')
+        return Application::with('jobPost.company')
             ->where('user_id', $request->user()->id)
+            ->latest()
             ->get();
     }
 
@@ -58,23 +70,66 @@ class ApplicationController extends Controller
 // Fungsi untuk Employer mengubah status lamaran
     public function updateStatus(Request $request, $id)
     {
-        // Validasi status yang dikirim
         $request->validate([
-            'status' => 'required|in:accepted,rejected,pending'
+            'status' => ['required', Rule::in(array_keys(self::STATUSES))],
+            'status_note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        // Cari data lamaran berdasarkan ID
-        $application = \App\Models\Application::findOrFail($id);
+        $application = Application::with(['user', 'jobPost.company'])->findOrFail($id);
+
+        if (
+            auth()->user()->role !== 'admin' &&
+            (!$application->jobPost || $application->jobPost->company_id !== optional(auth()->user()->company)->id)
+        ) {
+            return response()->json(['message' => 'Anda tidak memiliki akses untuk mengubah status lamaran ini.'], 403);
+        }
         
-        // Update statusnya
         $application->status = $request->status;
+        $application->status_note = $request->status_note;
         $application->save();
+        $application->refresh()->load(['user', 'jobPost.company']);
+
+        $notificationSent = $this->sendStatusNotification($application);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Status lamaran berhasil diubah!',
+            'notification_sent' => $notificationSent,
             'data' => $application
         ]);
+    }
+
+    private function sendStatusNotification(Application $application): bool
+    {
+        if (!$application->user?->email) {
+            return false;
+        }
+
+        $statusLabel = self::STATUSES[$application->status] ?? $application->status;
+        $jobTitle = $application->jobPost?->title ?? 'lowongan yang Anda lamar';
+        $companyName = $application->jobPost?->company?->company_name ?? 'perusahaan';
+        $statusNote = $application->status_note
+            ? "\n\nDetail dari employer:\n{$application->status_note}"
+            : '';
+
+        try {
+            Mail::raw(
+                "Halo {$application->user->name},\n\nStatus lamaran Anda untuk posisi {$jobTitle} di {$companyName} telah diperbarui menjadi: {$statusLabel}.{$statusNote}\n\nSilakan masuk ke dashboard RuangKarier untuk melihat detail terbaru.",
+                function ($message) use ($application, $statusLabel) {
+                    $message->to($application->user->email)
+                        ->subject("Update status lamaran: {$statusLabel}");
+                }
+            );
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Gagal mengirim notifikasi status lamaran', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     public function destroy($id)
@@ -96,4 +151,3 @@ class ApplicationController extends Controller
     ]);
 }
 }
-

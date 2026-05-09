@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Building2, Mail, Lock, UserCircle } from 'lucide-react';
 import api from '../services/api';
+import Swal from 'sweetalert2';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -12,11 +13,28 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      Swal.fire({
+        title: 'Mendaftarkan akun...',
+        text: 'Mohon tunggu sebentar.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
       await api.post('/api/register', formData);
-      alert('Registrasi Berhasil! Silahkan Login.');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Registrasi berhasil',
+        text: 'Silakan login untuk melanjutkan.',
+        confirmButtonColor: '#5D688A',
+      });
       navigate('/login');
     } catch (err) {
-      alert('Gagal registrasi: ' + err.response?.data?.message);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal registrasi',
+        text: err.response?.data?.message || 'Terjadi kesalahan saat registrasi.',
+        confirmButtonColor: '#5D688A',
+      });
     }
   };
 

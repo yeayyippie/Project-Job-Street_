@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MapPin, Briefcase, DollarSign, Calendar, ChevronLeft, Send, Bookmark, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import Swal from 'sweetalert2';
 
 const JobDetail = () => {
   const { id } = useParams();
@@ -31,16 +32,40 @@ const JobDetail = () => {
 
   // Fungsi melamar pekerjaan dengan CV
   const handleApply = async () => {
-    if (!user) return alert("Silakan login terlebih dahulu!");
-    if (user.role !== 'jobseeker') return alert("Hanya pelamar yang bisa melamar pekerjaan!");
+    if (!user) {
+      Swal.fire({ icon: 'warning', title: 'Login diperlukan', text: 'Silakan login terlebih dahulu.', confirmButtonColor: '#5D688A' });
+      return;
+    }
+    if (user.role !== 'jobseeker') {
+      Swal.fire({ icon: 'warning', title: 'Akses dibatasi', text: 'Hanya pelamar yang bisa melamar pekerjaan.', confirmButtonColor: '#5D688A' });
+      return;
+    }
     
     // Validasi CV wajib diunggah
-    if (!cvFile) return alert("Mohon unggah CV Anda terlebih dahulu sebelum melamar!");
+    if (!cvFile) {
+      Swal.fire({ icon: 'warning', title: 'CV belum diunggah', text: 'Mohon unggah CV Anda terlebih dahulu sebelum melamar.', confirmButtonColor: '#5D688A' });
+      return;
+    }
 
-    const confirmApply = window.confirm("Yakin ingin mengirim lamaran beserta CV ini?");
-    if (!confirmApply) return;
+    const confirmApply = await Swal.fire({
+      icon: 'question',
+      title: 'Kirim lamaran?',
+      text: 'Lamaran beserta CV akan dikirim ke employer.',
+      showCancelButton: true,
+      confirmButtonText: 'Kirim Lamaran',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#5D688A',
+    });
+    if (!confirmApply.isConfirmed) return;
 
     setApplying(true);
+    Swal.fire({
+      title: 'Mengirim lamaran...',
+      text: 'Mohon tunggu sebentar.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => Swal.showLoading(),
+    });
     const formData = new FormData();
     formData.append('job_post_id', id);
     formData.append('cv_file', cvFile); // Lampirkan file CV
@@ -49,11 +74,21 @@ const JobDetail = () => {
       await api.post('/api/apply', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert("Yeay! Berhasil melamar pekerjaan ini.");
+      await Swal.fire({
+        icon: 'success',
+        title: 'Lamaran terkirim',
+        text: 'Yeay! Lamaran Anda berhasil dikirim.',
+        confirmButtonColor: '#5D688A',
+      });
       navigate('/my-applications');
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Gagal melamar. Mungkin Anda sudah melamar pekerjaan ini?");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal melamar',
+        text: err.response?.data?.message || 'Gagal melamar. Mungkin Anda sudah melamar pekerjaan ini?',
+        confirmButtonColor: '#5D688A',
+      });
     } finally {
       setApplying(false);
     }
@@ -61,15 +96,36 @@ const JobDetail = () => {
 
   // Fungsi simpan ke favorit
   const handleBookmark = async () => {
-    if (!user) return alert("Silakan login terlebih dahulu!");
+    if (!user) {
+      Swal.fire({ icon: 'warning', title: 'Login diperlukan', text: 'Silakan login terlebih dahulu.', confirmButtonColor: '#5D688A' });
+      return;
+    }
 
     setBookmarking(true);
+    Swal.fire({
+      title: 'Menyimpan bookmark...',
+      text: 'Mohon tunggu sebentar.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => Swal.showLoading(),
+    });
     try {
       await api.post('/api/bookmarks', { job_post_id: id });
-      alert("Berhasil disimpan ke Favorit!");
+      Swal.fire({
+        icon: 'success',
+        title: 'Tersimpan',
+        text: 'Lowongan berhasil disimpan ke favorit.',
+        timer: 1600,
+        showConfirmButton: false,
+      });
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Gagal menyimpan. Mungkin lowongan ini sudah ada di Favorit Anda?");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal menyimpan',
+        text: err.response?.data?.message || 'Gagal menyimpan. Mungkin lowongan ini sudah ada di Favorit Anda?',
+        confirmButtonColor: '#5D688A',
+      });
     } finally {
       setBookmarking(false);
     }

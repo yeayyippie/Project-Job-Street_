@@ -11,6 +11,9 @@ use App\Http\Controllers\CompanyController;
 // PUBLIC ROUTES
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/verify-reset-otp', [AuthController::class, 'verifyResetOtp']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::get('/jobs', [JobPostController::class, 'index']);
 Route::get('/jobs/{id}', [JobPostController::class, 'show']);
@@ -51,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-applications', [ApplicationController::class, 'myApplications']);
         Route::post('/bookmarks', [BookmarkController::class, 'store']);
         Route::get('/bookmarks', [BookmarkController::class, 'index']);
+        Route::delete('/bookmarks', [BookmarkController::class, 'destroyByJob']);
         Route::delete('/bookmarks/{id}', [BookmarkController::class, 'destroy']);
         Route::delete('/applications/{id}', [ApplicationController::class, 'destroy']);
 

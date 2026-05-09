@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-refresh/only-export-components */
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 

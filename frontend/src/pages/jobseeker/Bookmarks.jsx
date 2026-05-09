@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookmarkMinus } from 'lucide-react';
 import JobCard from '../../components/jobs/JobCard';
 import api from '../../services/api';
+import Swal from 'sweetalert2';
 
 const Bookmarks = () => {
   const [bookmarks, setBookmarks] = useState([]);
@@ -26,14 +27,44 @@ const Bookmarks = () => {
 
   // FUNGSI BARU: Untuk menghapus bookmark berdasarkan ID Bookmark-nya
   const handleRemoveBookmark = async (bookmarkId) => {
+    const result = await Swal.fire({
+      icon: 'question',
+      title: 'Hapus bookmark?',
+      text: 'Lowongan akan dihapus dari daftar tersimpan.',
+      showCancelButton: true,
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#5D688A',
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
+      Swal.fire({
+        title: 'Menghapus bookmark...',
+        text: 'Mohon tunggu sebentar.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
       await api.delete(`/api/bookmarks/${bookmarkId}`);
       // Hapus langsung dari UI tanpa perlu refresh halaman
       setBookmarks(bookmarks.filter(b => b.id !== bookmarkId)); 
-      alert('Bookmark berhasil dihapus!');
+      Swal.fire({
+        icon: 'success',
+        title: 'Bookmark dihapus',
+        text: 'Bookmark berhasil dihapus.',
+        timer: 1600,
+        showConfirmButton: false,
+      });
     } catch (err) {
       console.error(err);
-      alert('Gagal menghapus bookmark.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Gagal menghapus bookmark.',
+        confirmButtonColor: '#5D688A',
+      });
     }
   };
 

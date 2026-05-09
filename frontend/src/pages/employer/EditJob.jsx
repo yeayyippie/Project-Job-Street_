@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Briefcase, MapPin, DollarSign, Calendar } from 'lucide-react';
 import api from '../../services/api';
+import Swal from 'sweetalert2';
 
 const EditJob = () => {
   const { id } = useParams();
@@ -35,7 +36,12 @@ const EditJob = () => {
         setRequirements(Array.isArray(job.requirements) ? job.requirements : []);
       } catch (err) {
         console.error("Gagal mengambil data lowongan", err);
-        alert("Lowongan tidak ditemukan.");
+        Swal.fire({
+          icon: 'error',
+          title: 'Lowongan tidak ditemukan',
+          text: 'Data lowongan gagal dimuat.',
+          confirmButtonColor: '#5D688A',
+        });
         navigate('/employer/dashboard');
       } finally {
         setLoading(false);
@@ -59,13 +65,30 @@ const EditJob = () => {
     e.preventDefault();
     setUpdating(true);
     try {
+      Swal.fire({
+        title: 'Menyimpan perubahan...',
+        text: 'Mohon tunggu sebentar.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
       // Mengirim data ke PUT /api/jobs/{id} sesuai dokumentasi backend 
       await api.put(`/api/jobs/${id}`, { ...formData, requirements });
-      alert('Lowongan berhasil diperbarui!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Lowongan diperbarui',
+        text: 'Lowongan berhasil diperbarui.',
+        confirmButtonColor: '#5D688A',
+      });
       navigate(`/jobs/${id}`); // Kembali ke halaman detail
     } catch (err) {
       console.error(err);
-      alert('Gagal memperbarui lowongan.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Gagal memperbarui lowongan.',
+        confirmButtonColor: '#5D688A',
+      });
     } finally {
       setUpdating(false);
     }

@@ -18,6 +18,7 @@ class Application extends Model
         'cv_file',
         'cover_letter',
         'status',
+        'status_note',
     ];
 
     // relasi ke user

@@ -54,4 +54,21 @@ class BookmarkController extends Controller
             'message' => 'Bookmark dihapus'
         ]);
     }
+
+    public function destroyByJob(Request $request)
+    {
+        $request->validate([
+            'job_post_id' => 'required|exists:job_posts,id',
+        ]);
+
+        $bookmark = Bookmark::where('user_id', auth()->id())
+            ->where('job_post_id', $request->job_post_id)
+            ->firstOrFail();
+
+        $bookmark->delete();
+
+        return response()->json([
+            'message' => 'Bookmark dihapus'
+        ]);
+    }
 }

@@ -5,18 +5,22 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          900: '#1e3a8a',
+          50: '#FFF2EF',
+          100: '#FFDBB6',
+          500: '#7A86A8',
+          600: '#5D688A',
+          900: '#35405F',
         },
         accent: {
-          500: '#8b5cf6', // Aksen ungu/indigo
+          50: '#FFF2EF',
+          100: '#FFD8D8',
+          500: '#F7A5A5',
+          600: '#E78383',
         }
       },
       boxShadow: {
-        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+        'glass': '0 18px 45px rgba(93, 104, 138, 0.12)',
+        'soft': '0 12px 30px rgba(247, 165, 165, 0.18)',
       }
     },
   },

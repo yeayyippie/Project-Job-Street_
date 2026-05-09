@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, GraduationCap, Briefcase, Cpu, Save, Camera } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import Swal from 'sweetalert2';
 
 const JobseekerProfile = () => {
   const { user } = useAuth();
@@ -94,14 +95,31 @@ const JobseekerProfile = () => {
     formData.append('_method', 'PUT');
 
     try {
+      Swal.fire({
+        title: 'Menyimpan profil...',
+        text: 'Mohon tunggu sebentar.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
       const res = await api.post('/api/profile', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert('Profil berhasil diperbarui!');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Profil diperbarui',
+        text: 'Profil berhasil diperbarui.',
+        confirmButtonColor: '#5D688A',
+      });
       localStorage.setItem('user_data', JSON.stringify(res.data.user));
       window.location.reload(); 
-    } catch (err) {
-      alert('Gagal menyimpan profil.');
+    } catch {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Gagal menyimpan profil.',
+        confirmButtonColor: '#5D688A',
+      });
     } finally {
       setSaving(false);
     }

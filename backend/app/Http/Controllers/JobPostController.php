@@ -12,11 +12,18 @@ class JobPostController extends Controller
     public function index(Request $request){
     $query = JobPost::with('company');
 
-    // SEARCH
-    if ($request->filled('search')) {
-        $query->where(function ($q) use ($request) {
-            $q->where('title', 'like', '%' . $request->search . '%')
-              ->orWhere('description', 'like', '%' . $request->search . '%');
+    // SEARCH: title, company, location, category, job type, and description.
+    $search = trim((string) $request->input('search', $request->input('keyword', '')));
+    if ($search !== '') {
+        $query->where(function ($q) use ($search) {
+            $q->where('title', 'like', '%' . $search . '%')
+              ->orWhere('description', 'like', '%' . $search . '%')
+              ->orWhere('location', 'like', '%' . $search . '%')
+              ->orWhere('category', 'like', '%' . $search . '%')
+              ->orWhere('job_type', 'like', '%' . $search . '%')
+              ->orWhereHas('company', function ($companyQuery) use ($search) {
+                  $companyQuery->where('company_name', 'like', '%' . $search . '%');
+              });
         });
     }
 
@@ -32,11 +39,12 @@ class JobPostController extends Controller
 
     // CATEGORY
     if ($request->filled('category')) {
-        $query->where('category', $request->category);
+        $query->where('category', 'like', '%' . $request->category . '%');
     }
 
     // PAGINATION
-    $jobs = $query->paginate(4);
+    $perPage = min(max((int) $request->input('per_page', 8), 1), 24);
+    $jobs = $query->latest()->paginate($perPage);
 
     // USER LOGIN
     $user = Auth::user();
