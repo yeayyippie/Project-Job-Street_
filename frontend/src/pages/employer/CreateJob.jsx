@@ -60,7 +60,9 @@ const CreateJob = () => {
       console.error(err);
       
       // Notifikasi error dengan detail
-      const errorMessage = err.response?.data?.message || 'Terjadi kesalahan saat mempublikasikan lowongan.';
+      const errorMessage = err.response?.status === 401
+        ? 'Sesi login Anda sudah berakhir. Silakan login kembali.'
+        : err.response?.data?.message || 'Terjadi kesalahan saat mempublikasikan lowongan.';
       const errorDetail = err.response?.data?.errors;
       
       let errorHtml = `<p>${errorMessage}</p>`;

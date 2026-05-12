@@ -4,6 +4,7 @@ import { Plus, Users, Briefcase, Eye, FileText, X, Clock, MessageCircle, Clipboa
 import api from '../../services/api';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { FaWhatsapp } from 'react-icons/fa';
 
 const STATUS_FLOW = [
   { value: 'pending_review', label: 'Menunggu Review', icon: Clock, className: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -47,6 +48,24 @@ const showSavingStatus = (title) => {
       Swal.showLoading();
     },
   });
+};
+
+const getApplicantPhone = (app) => (
+  app.user?.job_seeker_profile?.phone ||
+  app.user?.jobSeekerProfile?.phone ||
+  app.user?.phone ||
+  ''
+);
+
+const normalizeWhatsAppNumber = (phone = '') => {
+  const digits = String(phone).replace(/\D/g, '');
+
+  if (!digits) return '';
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
+  if (digits.startsWith('8')) return `62${digits}`;
+
+  return digits;
 };
 
 const EmployerDashboard = () => {
@@ -106,6 +125,56 @@ const EmployerDashboard = () => {
     setMyJobs(myJobs.map(job => job.id === selectedJob.id ? updatedSelectedJob : job));
   };
 
+  const buildWhatsAppMessage = (app, status, note = '') => {
+    const meta = getStatusMeta(status);
+    const applicantName = app.user?.name || 'Kandidat';
+    const jobTitle = selectedJob?.title || app.job_post?.title || 'posisi yang Anda lamar';
+    const companyName = selectedJob?.company?.company_name || 'perusahaan kami';
+    const intro = status === 'accepted'
+      ? `Selamat, status lamaran Anda untuk posisi ${jobTitle} di ${companyName} adalah ${meta.label}.`
+      : `Status lamaran Anda untuk posisi ${jobTitle} di ${companyName} adalah ${meta.label}.`;
+
+    return `Halo ${applicantName}, ${intro}${note ? `\n\nDetail:\n${note}` : ''}\n\nTerima kasih.`;
+  };
+
+  const openWhatsAppForApplicant = (app, status = app.status, note = app.status_note || '') => {
+    const phone = normalizeWhatsAppNumber(getApplicantPhone(app));
+
+    if (!phone) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Nomor WhatsApp belum tersedia',
+        text: 'Pelamar belum mengisi nomor telepon di profilnya.',
+        confirmButtonColor: '#5D688A',
+      });
+      return;
+    }
+
+    const message = encodeURIComponent(buildWhatsAppMessage(app, status, note));
+    window.open(`https://wa.me/${phone}?text=${message}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const offerWhatsAppAfterAccepted = async (app, status, note) => {
+    if (status !== 'accepted') return;
+
+    const phone = getApplicantPhone(app);
+    const result = await Swal.fire({
+      icon: phone ? 'success' : 'warning',
+      title: phone ? 'Pelamar diterima' : 'Pelamar diterima, tetapi nomor belum tersedia',
+      text: phone
+        ? 'Buka WhatsApp untuk mengirim pesan langsung ke pelamar?'
+        : 'Pelamar belum mengisi nomor telepon/WhatsApp di profilnya.',
+      showCancelButton: Boolean(phone),
+      confirmButtonText: phone ? 'Buka WhatsApp' : 'OK',
+      cancelButtonText: 'Nanti',
+      confirmButtonColor: '#16a34a',
+    });
+
+    if (phone && result.isConfirmed) {
+      openWhatsAppForApplicant(app, status, note);
+    }
+  };
+
   const showStatusDetail = async (app) => {
     const meta = getStatusMeta(app.status);
     const result = await Swal.fire({
@@ -144,15 +213,19 @@ const EmployerDashboard = () => {
 
       syncUpdatedApplication(res.data.data);
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Detail tersimpan',
-        text: res.data.notification_sent
-          ? 'Catatan sudah diperbarui dan notifikasi dikirim ke pelamar.'
-          : 'Catatan sudah diperbarui. Notifikasi email belum terkirim, periksa konfigurasi mail server.',
-        timer: 2200,
-        showConfirmButton: false,
-      });
+      if ((app.status || 'pending_review') === 'accepted') {
+        await offerWhatsAppAfterAccepted(res.data.data, app.status || 'pending_review', result.value || '');
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: 'Detail tersimpan',
+          text: res.data.notification_sent
+            ? 'Catatan sudah diperbarui dan notifikasi dikirim ke pelamar.'
+            : 'Catatan sudah diperbarui. Notifikasi email belum terkirim, periksa konfigurasi mail server.',
+          timer: 2200,
+          showConfirmButton: false,
+        });
+      }
     } catch (err) {
       console.error(err);
       Swal.fire({
@@ -205,15 +278,19 @@ const EmployerDashboard = () => {
       });
       syncUpdatedApplication(res.data.data);
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Status diperbarui',
-        text: res.data.notification_sent
-          ? 'Notifikasi sudah dikirim ke email pelamar.'
-          : 'Status tersimpan, tetapi notifikasi email belum terkirim. Periksa konfigurasi mail server.',
-        timer: 2200,
-        showConfirmButton: false,
-      });
+      if (newStatus === 'accepted') {
+        await offerWhatsAppAfterAccepted(res.data.data, newStatus, result.value || '');
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: 'Status diperbarui',
+          text: res.data.notification_sent
+            ? 'Notifikasi sudah dikirim ke email pelamar.'
+            : 'Status tersimpan, tetapi notifikasi email belum terkirim. Periksa konfigurasi mail server.',
+          timer: 2200,
+          showConfirmButton: false,
+        });
+      }
     } catch (err) {
       console.error(err);
       Swal.fire({ icon: 'error', title: 'Gagal', text: err.response?.data?.message || 'Gagal mengubah status pelamar.' });
@@ -369,6 +446,16 @@ const EmployerDashboard = () => {
                           </a>
                         ) : (
                           <span className="text-sm text-slate-400 italic">CV tidak dilampirkan</span>
+                        )}
+
+                        {currentStatus === 'accepted' && (
+                          <button
+                            type="button"
+                            onClick={() => openWhatsAppForApplicant(app)}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl hover:bg-emerald-100 transition-colors text-sm"
+                          >
+                            <FaWhatsapp size={17} /> WhatsApp
+                          </button>
                         )}
 
                         <select

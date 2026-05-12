@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const api = axios.create({
   // Jangan hardcode URL API, gunakan environment variable
@@ -19,6 +20,33 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || '';
+    const isLoginRequest = requestUrl.includes('/api/login');
+
+    if (status === 401 && !isLoginRequest) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sesi login berakhir',
+        text: 'Silakan login kembali untuk melanjutkan.',
+        confirmButtonColor: '#5D688A',
+      }).then(() => {
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      });
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export default api;

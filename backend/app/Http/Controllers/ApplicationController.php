@@ -75,7 +75,7 @@ class ApplicationController extends Controller
             'status_note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $application = Application::with(['user', 'jobPost.company'])->findOrFail($id);
+        $application = Application::with(['user.jobSeekerProfile', 'jobPost.company'])->findOrFail($id);
 
         if (
             auth()->user()->role !== 'admin' &&
@@ -87,7 +87,7 @@ class ApplicationController extends Controller
         $application->status = $request->status;
         $application->status_note = $request->status_note;
         $application->save();
-        $application->refresh()->load(['user', 'jobPost.company']);
+        $application->refresh()->load(['user.jobSeekerProfile', 'jobPost.company']);
 
         $notificationSent = $this->sendStatusNotification($application);
 

@@ -73,12 +73,20 @@ class JobPostController extends Controller
             'location' => 'required',
             'job_type' => 'required',
             'deadline' => 'required|date',
+            'requirements' => 'nullable|array',
         ]);
 
         try {
+            $company = auth()->user()->company;
+
+            if (!$company) {
+                return response()->json([
+                    'message' => 'Profil perusahaan belum tersedia. Lengkapi profil perusahaan terlebih dahulu.'
+                ], 422);
+            }
+
             $job = JobPost::create([
-                // AMAN: ambil dari user login
-                'company_id' => auth()->user()->company->id,
+                'company_id' => $company->id,
 
                 'title' => $request->title,
                 'description' => $request->description,
@@ -185,7 +193,7 @@ public function show($id)
 
     // ambil job + pelamar
     $jobs = $company->jobs()->with([
-        'applications.user'
+        'applications.user.jobSeekerProfile'
     ])->get();
 
     return response()->json($jobs);

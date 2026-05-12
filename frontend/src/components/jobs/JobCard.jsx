@@ -15,6 +15,13 @@ const JobCard = ({ job, onRemoveBookmark, isSavedPage }) => {
   useEffect(() => {
     if (!isSavedPage) {
       const checkBookmarkStatus = async () => {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          setIsBookmarked(false);
+          setBookmarkId(null);
+          return;
+        }
+
         try {
           const res = await api.get('/api/bookmarks');
           const bookmarks = res.data.data || res.data;
@@ -37,6 +44,16 @@ const JobCard = ({ job, onRemoveBookmark, isSavedPage }) => {
   const handleBookmarkClick = async (e) => {
     e.preventDefault();
     if (loadingBookmark) return;
+
+    if (!localStorage.getItem('auth_token')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Login diperlukan',
+        text: 'Silakan login sebagai jobseeker untuk menyimpan lowongan.',
+        confirmButtonColor: '#5D688A',
+      });
+      return;
+    }
     
     // Jika di halaman saved, panggil onRemoveBookmark jika ada
     if (isSavedPage && onRemoveBookmark) {
